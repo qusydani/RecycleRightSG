@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+data/
+models/
+.history/
+.vscode-history/
+reports/*.csv
+reports/*.txt
+reports/*.json
