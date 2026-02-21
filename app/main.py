@@ -8,7 +8,7 @@ from src.predictor import TrashnetPredictor
 from app.feedback import router as feedback_router
 
 app = FastAPI()
-predictor = TrashnetPredictor("models/trashnet_mobilenetv2.pt", abstain_threshold=0.55)
+predictor = TrashnetPredictor("yolov8n.pt", abstain_threshold=0.55)
 app.include_router(feedback_router)
 
 @app.get("/health")
@@ -26,14 +26,19 @@ async def predict(file: UploadFile = File(...)):
     except Exception:
         raise HTTPException(status_code=400, detail="Could not read image.")
 
-    pred = predictor.predict_pil(img)
+    # Get list of detections from YOLO
+    detections = predictor.predict_pil(img)
+    
     return {
         "filename": file.filename,
-        "predicted_label": pred.predicted_label,
-        "confidence": pred.confidence,
-        "top3": pred.top3,
-        "abstained": pred.abstained,
-        "advice": pred.advice,
+        "detections": [
+            {
+                "label": d.label,
+                "confidence": d.confidence,
+                "box": d.box,
+                "advice": d.advice
+            } for d in detections
+        ]
     }
 
 @app.get("/", response_class=HTMLResponse)
@@ -126,13 +131,22 @@ def home():
                 const video = document.getElementById('video');
                 const canvas = document.getElementById('canvas');
                 
+                // Ensure canvas overlays the video perfectly
+                canvas.classList.remove('hidden');
+                canvas.style.position = 'absolute';
+                canvas.style.left = video.offsetLeft + 'px';
+                canvas.style.top = video.offsetTop + 'px';
+                canvas.style.width = video.offsetWidth + 'px';
+                canvas.style.height = video.offsetHeight + 'px';
+                
                 if (video.readyState === video.HAVE_ENOUGH_DATA) {
                     canvas.width = video.videoWidth;
                     canvas.height = video.videoHeight;
                     const ctx = canvas.getContext('2d');
+                    
+                    // First, draw the current video frame to the canvas to send to FastAPI
                     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                     
-                    // Convert canvas to Blob and send to FastAPI
                     canvas.toBlob(async (blob) => {
                         const formData = new FormData();
                         formData.append('file', blob, 'frame.jpg');
@@ -144,15 +158,43 @@ def home():
                             });
                             const data = await response.json();
                             
-                            // Update UI
-                            document.getElementById('pred-label').innerText = data.predicted_label;
-                            document.getElementById('pred-conf').innerText = (data.confidence * 100).toFixed(1) + "%";
-                            document.getElementById('pred-advice').innerText = data.advice;
+                            // Clear canvas to get ready to draw boxes over the live video
+                            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                            let resultsHtml = '';
+                            
+                            // Loop through all detected objects
+                            if (data.detections && data.detections.length > 0) {
+                                data.detections.forEach(det => {
+                                    // Draw Bounding Box
+                                    const [x, y, w, h] = det.box;
+                                    ctx.strokeStyle = '#00FF00'; // Neon Green
+                                    ctx.lineWidth = 4;
+                                    ctx.strokeRect(x, y, w, h);
+                                    
+                                    // Draw Label Background
+                                    ctx.fillStyle = '#00FF00';
+                                    ctx.fillRect(x, y - 25, ctx.measureText(det.label).width + 60, 25);
+                                    
+                                    // Draw Label Text
+                                    ctx.fillStyle = '#000000'; // Black text
+                                    ctx.font = '20px Arial';
+                                    const confPercent = (det.confidence * 100).toFixed(0);
+                                    ctx.fillText(`${det.label} ${confPercent}%`, x + 5, y - 5);
+
+                                    // Add to text results below video
+                                    resultsHtml += `<strong>${det.label}</strong> (${confPercent}%): ${det.advice}<br>`;
+                                });
+                            } else {
+                                resultsHtml = "No recognizable items detected.";
+                            }
+                            
+                            document.getElementById('result').innerHTML = resultsHtml;
                             
                         } catch (e) {
                             console.error("Prediction error:", e);
                         }
-                    }, 'image/jpeg', 0.8); // 0.8 is compression quality to save bandwidth
+                    }, 'image/jpeg', 0.8);
                 }
             }
         </script>
