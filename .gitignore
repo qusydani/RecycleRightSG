@@ -9,3 +9,8 @@ models/
 reports/*.csv
 reports/*.txt
 reports/*.json
+*.pt
+runs/detect/train/*.png
+runs/detect/train/*.jpg
+runs/detect/train/*.yaml
+runs/detect/train/*.csv

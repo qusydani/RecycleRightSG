@@ -4,23 +4,45 @@ from typing import List, Dict
 from PIL import Image
 from ultralytics import YOLO
 
-from src.labels import BLUE_BIN_OK
-
 @dataclass
 class Detection:
     label: str
     confidence: float
-    box: List[float] # [x1, y1, width, height]
+    box: List[float] # [x, y, width, height]
     advice: str
 
+# This maps the YOLO visual classes to the specific NEA guidelines
+NEA_ADVICE_MAP = {
+    # PAPER
+    "cardboard": "Blue Bin OK! Please flatten before recycling.",
+    "paper": "Blue Bin OK! Make sure it is clean before recycling.",
+    
+    # PLASTIC & FOAM
+    "plastic": "Blue Bin OK! Please empty and rinse before recycling. Foil packaging goes to general waste.",
+    "styrofoam": "DO NOT PUT IN BLUE BIN! Dispose as general waste.",
+    
+    # GLASS
+    "glass": "Blue Bin OK! Please empty and rinse. Pyrex, tempered glass, and ceramics go to general waste.",
+    
+    # METAL
+    "metal": "Blue Bin OK! Please empty and rinse when necessary. Rusted metals are general waste.",
+    "aluminium": "Blue Bin OK! Please empty and rinse before recycling.",
+    
+    # E-WASTE & OTHERS
+    "e-waste": "DO NOT PUT IN BLUE BIN! Can be recycled at e-waste collection points.",
+    "clothing": "DO NOT PUT IN BLUE BIN! Donate if in good condition."
+}
+
+# Fallback advice if the dataset has a class we didn't explicitly map
+FALLBACK_ADVICE = "Not sure, don’t risk contaminating the blue bin."
+
 class TrashnetPredictor:
-    def __init__(self, model_path: str = "yolov8n.pt", abstain_threshold: float = 0.55):
-        # We will use the base YOLOv8 nano model 
+    def __init__(self, model_path: str = "models/best.pt", abstain_threshold: float = 0.55):
+        # Once trained, this will load your custom YOLO model
         self.model = YOLO(model_path) 
         self.abstain_threshold = abstain_threshold
 
     def predict_pil(self, img: Image.Image) -> List[Detection]:
-        # Run YOLO inference
         results = self.model(img, verbose=False)
         
         detections = []
@@ -29,23 +51,17 @@ class TrashnetPredictor:
             for box in boxes:
                 conf = float(box.conf[0])
                 if conf < self.abstain_threshold:
-                    continue # Skip low confidence detections
+                    continue
 
-                # Get class label
                 class_id = int(box.cls[0])
-                label = self.model.names[class_id]
+                label = self.model.names[class_id] 
+                
+                # Fetch advice from the NEA map, or use fallback
+                advice = NEA_ADVICE_MAP.get(label, FALLBACK_ADVICE)
 
-                # Get bounding box coordinates (xywh format: x-center, y-center, width, height)
-                # We convert to top-left x, top-left y, width, height for the HTML canvas
                 xyxy = box.xyxy[0].tolist() 
                 x1, y1, x2, y2 = xyxy
                 box_coords = [x1, y1, x2 - x1, y2 - y1]
-
-                # Generate advice
-                if label in BLUE_BIN_OK or label in ['bottle', 'cup']: # Added generic YOLO classes for testing
-                    advice = "Blue bin OK if clean & dry."
-                else:
-                    advice = "Do not put in blue bin."
 
                 detections.append(Detection(
                     label=label,
