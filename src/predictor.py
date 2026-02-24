@@ -45,6 +45,10 @@ class TrashnetPredictor:
     def predict_pil(self, img: Image.Image) -> List[Detection]:
         results = self.model(img, verbose=False)
         
+        # Get the total area of the image
+        img_width, img_height = img.size
+        img_area = img_width * img_height
+        
         detections = []
         for result in results:
             boxes = result.boxes
@@ -53,20 +57,25 @@ class TrashnetPredictor:
                 if conf < self.abstain_threshold:
                     continue
 
-                class_id = int(box.cls[0])
-                label = self.model.names[class_id] 
-                
-                # Fetch advice from the NEA map, or use fallback
-                advice = NEA_ADVICE_MAP.get(label, FALLBACK_ADVICE)
-
+                # Get coordinates
                 xyxy = box.xyxy[0].tolist() 
                 x1, y1, x2, y2 = xyxy
-                box_coords = [x1, y1, x2 - x1, y2 - y1]
+                box_width = x2 - x1
+                box_height = y2 - y1
+                box_area = box_width * box_height
+                
+                # Ignore boxes that cover more than 95% of the screen
+                if box_area > (0.95 * img_area):
+                    continue
+
+                class_id = int(box.cls[0])
+                label = self.model.names[class_id] 
+                advice = NEA_ADVICE_MAP.get(label, FALLBACK_ADVICE)
 
                 detections.append(Detection(
                     label=label,
                     confidence=conf,
-                    box=box_coords,
+                    box=[x1, y1, box_width, box_height],
                     advice=advice
                 ))
                 

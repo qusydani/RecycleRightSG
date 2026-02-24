@@ -14,3 +14,7 @@ runs/detect/train/*.png
 runs/detect/train/*.jpg
 runs/detect/train/*.yaml
 runs/detect/train/*.csv
+runs/detect/train2/*.png
+runs/detect/train2/*.jpg
+runs/detect/train2/*.yaml
+runs/detect/train2/*.csv
