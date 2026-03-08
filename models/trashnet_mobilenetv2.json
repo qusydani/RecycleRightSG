@@ -1,0 +1,11 @@
+{
+  "classes": [
+    "cardboard",
+    "glass",
+    "metal",
+    "paper",
+    "plastic",
+    "trash"
+  ],
+  "model_name": "mobilenet_v2"
+}
