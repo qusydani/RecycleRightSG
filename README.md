@@ -1,3 +1,12 @@
+---
+title: BlueBin Buddy
+emoji: ♻️
+colorFrom: green
+colorTo: blue
+sdk: docker
+app_port: 7860
+---
+
 # BlueBin Buddy
 
 BlueBin Buddy is an ML-powered web app for Singapore’s blue recycling bins that classifies an uploaded item photo into 6 material types (cardboard, glass, metal, paper, plastic, trash) and returns contamination-aware guidance with confidence and a “Not sure” fallback.
