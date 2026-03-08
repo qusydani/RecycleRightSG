@@ -1,5 +1,4 @@
 # app/main.py
-import csv
 import io
 import logging
 import time

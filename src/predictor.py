@@ -1,6 +1,6 @@
 # src/predictor.py
 from dataclasses import dataclass
-from typing import List, Dict
+from typing import List
 from PIL import Image
 from ultralytics import YOLO
 

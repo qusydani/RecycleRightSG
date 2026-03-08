@@ -28,15 +28,14 @@ jobs:
         with:
           python-version: "3.11"
 
-      # Install CPU-only torch to keep CI fast
+      # Install CPU-only torch first (--index-url only applies to one command),
+      # then install everything else from PyPI.
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install fastapi uvicorn pillow pydantic pydantic-settings \
-                      python-multipart numpy httpx pytest pytest-asyncio \
-                      torch torchvision --index-url https://download.pytorch.org/whl/cpu
-          # ultralytics without heavy extras
-          pip install ultralytics
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install fastapi "uvicorn[standard]" pillow pydantic pydantic-settings \
+                      python-multipart numpy httpx pytest pytest-asyncio ultralytics
 
       - name: Run tests
         run: pytest tests/ -v --tb=short
