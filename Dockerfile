@@ -6,7 +6,8 @@ COPY requirements.txt .
 # pip --index-url only applies to one command, so torch must be separate.
 RUN pip install --no-cache-dir torch torchvision \
         --index-url https://download.pytorch.org/whl/cpu && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir "opencv-python-headless>=4.8.0"
 
 # ── Runtime stage ──────────────────────────────────────────────────────────────
 FROM python:3.11-slim
