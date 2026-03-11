@@ -761,8 +761,8 @@ function drawDetections(canvas, detections) {{
   }});
 }}
 
-function renderResults(detections, filename) {{
-  const div = document.getElementById('upload-results');
+function renderResults(detections, filename, targetId = 'upload-results') {{
+  const div = document.getElementById(targetId);
 
   if (!detections || detections.length === 0) {{
     div.innerHTML = `<div class="card"><div class="no-detection">
@@ -812,7 +812,7 @@ function markCorrect(idx) {{
   const det = currentDetections[idx];
   postFeedback(det.label, det.label, det.confidence, false);
   document.getElementById(`thanks-${{idx}}`).classList.remove('hidden');
-  document.querySelector(`#upload-results .det-card:nth-child(${{idx+1}}) .feedback-row`).classList.add('hidden');
+  document.getElementById(`thanks-${{idx}}`).closest('.det-card').querySelector('.feedback-row').classList.add('hidden');
 }}
 
 function showCorrection(idx) {{
@@ -922,19 +922,12 @@ async function captureAndPredict() {{
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      let html = '';
+      currentDetections = data.detections || [];
+      currentFilename   = `camera_frame_${{Date.now()}}.jpg`;
+      renderResults(data.detections, currentFilename, 'camera-result');
       if (data.detections && data.detections.length > 0) {{
         drawDetections(canvas, data.detections);
-        html = data.detections.map(det => {{
-          const pct = (det.confidence * 100).toFixed(0);
-          const icon = ['styrofoam','e-waste','clothing'].includes(det.label) ? '🚫' : '✅';
-          return `<strong>${{icon}} ${{det.label.toUpperCase()}} (${{pct}}%)</strong><br>
-                  <span style="font-size:.85rem;color:var(--muted)">${{det.advice}}</span>`;
-        }}).join('<hr style="margin:8px 0; border:none; border-top:1px solid var(--border)">');
-      }} else {{
-        html = '<span style="color:var(--muted)">Scanning… no items detected.</span>';
       }}
-      document.getElementById('camera-result').innerHTML = html;
     }} catch (e) {{
       console.error('Camera predict error:', e);
     }}
