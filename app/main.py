@@ -10,7 +10,7 @@ from fastapi.responses import HTMLResponse
 from PIL import Image
 
 from app.config import settings
-from app.explainability import generate_gradcam_b64
+from app.explainability import generate_drise_b64
 from app.feedback import router as feedback_router
 from src.predictor import TrashnetPredictor
 
@@ -178,13 +178,13 @@ async def predict(file: UploadFile = File(...)):
 
 @app.post("/explain")
 async def explain(file: UploadFile = File(...)):
-    """Generate an EigenCAM attention heatmap for the uploaded image."""
+    """Generate a D-RISE saliency map for the uploaded image."""
     img, _ = await _load_image(file)
 
     try:
-        heatmap_b64 = generate_gradcam_b64(predictor.model, img)
+        heatmap_b64 = generate_drise_b64(predictor.model, img)
     except RuntimeError as exc:
-        logger.warning("GradCAM failed: %s", exc)
+        logger.warning("D-RISE failed: %s", exc)
         raise HTTPException(422, str(exc))
 
     return {"heatmap_b64": heatmap_b64}
@@ -432,7 +432,7 @@ _HTML = f"""<!DOCTYPE html>
     }}
     .stat-num  {{ font-size: 1.6rem; font-weight: 700; color: var(--primary); }}
     .stat-lbl  {{ font-size: .75rem; color: var(--muted); margin-top: 2px; }}
-    .chart-wrap {{ max-height: 260px; }}
+    .chart-wrap {{ position: relative; height: 220px; }}
 
     /* ── Loading overlay ───────────────────────────────────────────────────── */
     #loading-overlay {{
@@ -523,12 +523,12 @@ _HTML = f"""<!DOCTYPE html>
       </div>
 
       <button id="explain-btn" class="btn btn-secondary hidden" onclick="runExplain()">
-        🔬 Explain (GradCAM)
+        🔬 Explain (D-RISE)
       </button>
 
       <div id="heatmap-section" class="hidden">
         <div class="heatmap-header">🔥 Attention Heatmap — areas the model focused on</div>
-        <img id="heatmap-img" alt="GradCAM heatmap">
+        <img id="heatmap-img" alt="D-RISE saliency map">
       </div>
     </div>
 
@@ -866,7 +866,7 @@ async function runExplain() {{
     document.getElementById('heatmap-section').classList.remove('hidden');
     showToast('Attention heatmap ready!', 'success');
   }} catch (e) {{
-    showToast(`GradCAM: ${{e.message}}`, 'error');
+    showToast(`D-RISE: ${{e.message}}`, 'error');
   }} finally {{
     showLoading(false);
   }}
@@ -978,9 +978,13 @@ async function loadStats() {{
       }},
       options: {{
         responsive: true,
+        maintainAspectRatio: false,
         plugins: {{
-          legend: {{ position: 'bottom', labels: {{ font: {{ size: 11 }} }} }},
-          title: {{ display: true, text: 'Detections by Class', font: {{ size: 13 }} }},
+          legend: {{
+            position: 'bottom',
+            labels: {{ font: {{ size: 10 }}, boxWidth: 10, padding: 6 }},
+          }},
+          title: {{ display: true, text: 'Detections by Class', font: {{ size: 12 }} }},
         }},
       }},
     }});
