@@ -13,6 +13,7 @@ An ML-powered recycling assistant for Singapore's blue bin system. Point your ca
 
 Live demo: [huggingface.co/spaces/qusydani/BlueBinBuddy](https://huggingface.co/spaces/qusydani/BlueBinBuddy)
 
+[![Video Demo](https://img.youtube.com/vi/tl826S2Zgi4/maxresdefault.jpg)](https://www.youtube.com/watch?v=tl826S2Zgi4)
 ---
 
 ## Features
